@@ -10,6 +10,7 @@ public:
     ChatServer( QObject* parent = Q_NULLPTR );
 
 public slots:
+    void inspectConnection();
 
 protected:
     std::vector<QTcpSocket*> clientSockets_;

@@ -4,7 +4,14 @@
 #include <QtWidgets/QTextEdit>
 #include <QtWidgets/QVBoxLayout>
 
-ChatWidget::ChatWidget( QWidget* parent ) : QWidget( parent ) {
+#include <QtNetwork/QHostAddress>
+#include <QtNetwork/QHostInfo>
+#include <QtNetwork/QTcpSocket>
+
+ChatWidget::ChatWidget( QWidget* parent ) :
+    QWidget( parent ),
+    connected_( false )
+{
     auto l = new QVBoxLayout( this );
 
     textView_ = new QTextEdit( this );
@@ -19,6 +26,25 @@ ChatWidget::ChatWidget( QWidget* parent ) : QWidget( parent ) {
     l->addWidget( inputField_ );
 
     connect( inputField_, SIGNAL( returnPressed() ), this, SLOT( sendText() ) );
+
+    // connect to local server
+    auto hostInfo = QHostInfo::fromName( QHostInfo::localHostName() );
+    QHostAddress myAddress;
+    for( const auto& a : hostInfo.addresses() ) {
+        if( a.protocol() != QAbstractSocket::IPv4Protocol ) {
+            continue;
+        }
+        if( ( a.toIPv4Address() & 0xff ) == 1 ) {
+            continue;
+        }
+        myAddress = a;
+        break;
+    }
+
+    socket_ = new QTcpSocket( this );
+    connect( socket_, SIGNAL( connected() ), this, SLOT( connectToServer() ) );
+    connect( socket_, SIGNAL( disconnected() ), this, SLOT( disconnectFromServer() ) );
+    socket_->connectToHost( myAddress, 12345 );
 }
 
 
@@ -27,6 +53,17 @@ void ChatWidget::sendText() {
     if( text.isEmpty() ) {
         return;
     }
-    textView_->append( inputField_->text() );
+    textView_->append( text );
     inputField_->clear();
+}
+
+
+void ChatWidget::connectToServer() {
+    connected_ = true;
+    textView_->append( "*** Connected to " + socket_->peerAddress().toString() + ":" + QString::number( socket_->peerPort() ) + " ***" );
+}
+
+void ChatWidget::disconnectFromServer() {
+    connected_ = false;
+    textView_->append( "*** Disconnected from " + socket_->peerAddress().toString() + ":" + QString::number( socket_->peerPort() ) + " ***" );
 }

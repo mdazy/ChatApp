@@ -4,6 +4,7 @@
 
 class QLineEdit;
 class QTextEdit;
+class QTcpSocket; 
 
 class ChatWidget : public QWidget {
     Q_OBJECT;
@@ -12,8 +13,12 @@ public:
 
 protected slots:
     void sendText();
+    void connectToServer();
+    void disconnectFromServer();
 
 protected:
     QTextEdit* textView_;
     QLineEdit* inputField_;
+    QTcpSocket* socket_;
+    bool connected_;
 };
