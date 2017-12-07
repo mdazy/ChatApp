@@ -11,7 +11,9 @@ public:
 
 public slots:
     void inspectConnection();
+    void dispatch();
+    void disconnectClient();
 
 protected:
-    std::vector<QTcpSocket*> clientSockets_;
+    QList<QTcpSocket*> clientSockets_;
 };
