@@ -13,6 +13,7 @@ public:
 
 protected slots:
     void sendText();
+    void receiveText();
     void connectToServer();
     void disconnectFromServer();
 

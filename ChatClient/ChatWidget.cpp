@@ -44,6 +44,7 @@ ChatWidget::ChatWidget( QWidget* parent ) :
     socket_ = new QTcpSocket( this );
     connect( socket_, SIGNAL( connected() ), this, SLOT( connectToServer() ) );
     connect( socket_, SIGNAL( disconnected() ), this, SLOT( disconnectFromServer() ) );
+    connect( socket_, SIGNAL( readyRead() ), this, SLOT( receiveText() ) );
     socket_->connectToHost( myAddress, 12345 );
 }
 
@@ -53,8 +54,21 @@ void ChatWidget::sendText() {
     if( text.isEmpty() ) {
         return;
     }
+    if( connected_ ) {
+        // send to server
+        socket_->write( text.toLocal8Bit() );
+    }
     textView_->append( text );
     inputField_->clear();
+}
+
+
+void ChatWidget::receiveText() {
+    auto text = QString::fromLocal8Bit( socket_->readAll() );
+    if( text.isEmpty() ) {
+        return;
+    }
+    textView_->append( "Received: " + text );
 }
 
 
