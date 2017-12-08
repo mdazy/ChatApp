@@ -1,5 +1,7 @@
 #include "ChatWidget.h"
 
+#include <QtCore/QProcessEnvironment>
+
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QLineEdit>
@@ -31,6 +33,13 @@ ChatWidget::ChatWidget( QWidget* parent ) :
     hl->addWidget( connectButton_ );
     connect( connectButton_, SIGNAL( clicked() ), this, SLOT( tryConnectToServer() ) );
 
+    hl = new QHBoxLayout();
+    l->addLayout( hl );
+    hl->addWidget( new QLabel( "Nickname" ) );
+    nickName_ = new QLineEdit();
+    nickName_->setText( QProcessEnvironment::systemEnvironment().value( "USERNAME" ) );
+    hl->addWidget( nickName_ );
+
     // read-only text view
     textView_ = new QTextEdit();
     textView_->setObjectName( "text view" );
@@ -59,11 +68,18 @@ void ChatWidget::sendText() {
     if( text.isEmpty() ) {
         return;
     }
+    textView_->append( text );
+
+    QString nick = nickName_->text();
+    if( nick.isEmpty() ) {
+        nick = QProcessEnvironment::systemEnvironment().value( "USERNAME" );
+    }
+    text = nick + ": " + text;
     if( connected_ ) {
         // send to server
         socket_->write( text.toLocal8Bit() );
     }
-    textView_->append( text );
+
     inputField_->clear();
 }
 

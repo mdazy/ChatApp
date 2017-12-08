@@ -22,6 +22,7 @@ protected slots:
 protected:
     QLineEdit* serverName_;
     QPushButton* connectButton_;
+    QLineEdit* nickName_;
     QTextEdit* textView_;
     QLineEdit* inputField_;
     QTcpSocket* socket_;
