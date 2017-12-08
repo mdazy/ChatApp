@@ -3,6 +3,7 @@
 #include <QtWidgets/QWidget>
 
 class QLineEdit;
+class QPushButton;
 class QTextEdit;
 class QTcpSocket; 
 
@@ -14,10 +15,13 @@ public:
 protected slots:
     void sendText();
     void receiveText();
+    void tryConnectToServer();
     void connectToServer();
     void disconnectFromServer();
 
 protected:
+    QLineEdit* serverName_;
+    QPushButton* connectButton_;
     QTextEdit* textView_;
     QLineEdit* inputField_;
     QTcpSocket* socket_;

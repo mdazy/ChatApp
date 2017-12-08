@@ -1,6 +1,9 @@
 #include "ChatWidget.h"
 
+#include <QtWidgets/QHBoxLayout>
+#include <QtWidgets/QLabel>
 #include <QtWidgets/QLineEdit>
+#include <QtWidgets/QPushButton>
 #include <QtWidgets/QTextEdit>
 #include <QtWidgets/QVBoxLayout>
 
@@ -14,38 +17,40 @@ ChatWidget::ChatWidget( QWidget* parent ) :
 {
     auto l = new QVBoxLayout( this );
 
-    textView_ = new QTextEdit( this );
+    auto hl = new QHBoxLayout();
+    l->addLayout( hl );
+
+    // server name input
+    hl->addWidget( new QLabel( "Server" ) );
+    serverName_ = new QLineEdit();
+    serverName_->setObjectName( "server name" );
+    serverName_->setText( QHostInfo::localHostName() );
+    hl->addWidget( serverName_ );
+    connectButton_ = new QPushButton( "Connect" );
+    connectButton_->setObjectName( "connect button" );
+    hl->addWidget( connectButton_ );
+    connect( connectButton_, SIGNAL( clicked() ), this, SLOT( tryConnectToServer() ) );
+
+    // read-only text view
+    textView_ = new QTextEdit();
     textView_->setObjectName( "text view" );
     textView_->setReadOnly( true );
     textView_->setFocusPolicy( Qt::NoFocus );
     l->addWidget( textView_ );
 
-    inputField_ = new QLineEdit( this );
+    // input field
+    inputField_ = new QLineEdit();
     inputField_->setObjectName( "input field" );
-    inputField_->setFocus();
+    inputField_->setDisabled( true );
     l->addWidget( inputField_ );
-
     connect( inputField_, SIGNAL( returnPressed() ), this, SLOT( sendText() ) );
 
-    // connect to local server
-    auto hostInfo = QHostInfo::fromName( QHostInfo::localHostName() );
-    QHostAddress myAddress;
-    for( const auto& a : hostInfo.addresses() ) {
-        if( a.protocol() != QAbstractSocket::IPv4Protocol ) {
-            continue;
-        }
-        if( ( a.toIPv4Address() & 0xff ) == 1 ) {
-            continue;
-        }
-        myAddress = a;
-        break;
-    }
-
+    // network connection
     socket_ = new QTcpSocket( this );
     connect( socket_, SIGNAL( connected() ), this, SLOT( connectToServer() ) );
+    connect( socket_, SIGNAL( error( QAbstractSocket::SocketError ) ), this, SLOT( disconnectFromServer() ) );
     connect( socket_, SIGNAL( disconnected() ), this, SLOT( disconnectFromServer() ) );
     connect( socket_, SIGNAL( readyRead() ), this, SLOT( receiveText() ) );
-    socket_->connectToHost( myAddress, 12345 );
 }
 
 
@@ -72,12 +77,31 @@ void ChatWidget::receiveText() {
 }
 
 
+void ChatWidget::tryConnectToServer() {
+    // disable connect button while trying
+    serverName_->setDisabled( true );
+    connectButton_->setDisabled( true );
+    connectButton_->setText( "Connecting..." );
+
+    // connect to port 12345
+    socket_->connectToHost( serverName_->text(), 12345 );
+}
+
+
 void ChatWidget::connectToServer() {
     connected_ = true;
     textView_->append( "*** Connected to " + socket_->peerAddress().toString() + ":" + QString::number( socket_->peerPort() ) + " ***" );
+    connectButton_->setText( "Connected" );
+    inputField_->setEnabled( true );
+    inputField_->setFocus();
 }
+
 
 void ChatWidget::disconnectFromServer() {
     connected_ = false;
+    serverName_->setEnabled( true );
+    connectButton_->setText( "Connect" );
+    connectButton_->setEnabled( true );
     textView_->append( "*** Disconnected from " + socket_->peerAddress().toString() + ":" + QString::number( socket_->peerPort() ) + " ***" );
+    inputField_->setDisabled( true );
 }
