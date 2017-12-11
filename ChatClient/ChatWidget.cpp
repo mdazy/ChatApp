@@ -1,6 +1,8 @@
 #include "ChatWidget.h"
 
+#include <QtCore/QCoreApplication>
 #include <QtCore/QProcessEnvironment>
+#include <QtCore/QSettings>
 #include <QtCore/QTime>
 
 #include <QtWidgets/QHBoxLayout>
@@ -14,6 +16,10 @@
 #include <QtNetwork/QHostInfo>
 #include <QtNetwork/QTcpSocket>
 
+#include <iostream>
+
+using namespace std;
+
 
 static const QString version = "1.1";
 
@@ -25,6 +31,13 @@ ChatWidget::ChatWidget( QWidget* parent ) :
     QWidget( parent ),
     connected_( false )
 {
+    // retrieve settings from previous session
+    settings_ = new QSettings( this );
+    QString serverName = settings_->value( "serverName", QHostInfo::localHostName() ).toString();
+    settings_->setValue( "serverName", serverName );
+    QString nick = settings_->value( "nickName", QProcessEnvironment::systemEnvironment().value( "USERNAME" ) ).toString();
+    settings_->setValue( "nickName", nick );
+
     auto l = new QVBoxLayout( this );
 
     auto hl = new QHBoxLayout();
@@ -34,7 +47,7 @@ ChatWidget::ChatWidget( QWidget* parent ) :
     hl->addWidget( new QLabel( "Server" ) );
     serverName_ = new QLineEdit();
     serverName_->setObjectName( "server name" );
-    serverName_->setText( QHostInfo::localHostName() );
+    serverName_->setText( serverName );
     hl->addWidget( serverName_ );
     connectButton_ = new QPushButton( "Connect" );
     connectButton_->setObjectName( "connect button" );
@@ -45,7 +58,7 @@ ChatWidget::ChatWidget( QWidget* parent ) :
     l->addLayout( hl );
     hl->addWidget( new QLabel( "Nickname" ) );
     nickName_ = new QLineEdit();
-    nickName_->setText( QProcessEnvironment::systemEnvironment().value( "USERNAME" ) );
+    nickName_->setText( nick );
     hl->addWidget( nickName_ );
 
     // read-only text view
@@ -73,6 +86,13 @@ ChatWidget::ChatWidget( QWidget* parent ) :
 
 
 /*!
+ */
+ChatWidget::~ChatWidget() {
+    settings_->sync();
+}
+
+
+/*!
  * Sends input text.
  * 
  * Sends the input text if it's not empty, prepending the nick name, then clears the
@@ -93,6 +113,7 @@ void ChatWidget::sendText() {
 
     if( nick() != prevNick_ ) {
         prevNick_ = nick();
+        settings_->setValue( "nickName", prevNick_ );
         socket_->write( prevNick_.toLocal8Bit() );
         socket_->flush();
     }
@@ -153,6 +174,7 @@ void ChatWidget::tryConnectToServer() {
 
     // connect to port 12345
     socket_->connectToHost( serverName_->text(), 12345 );
+    settings_->setValue( "serverName", serverName_->text() );
 }
 
 
