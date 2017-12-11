@@ -95,9 +95,6 @@ void ChatServer::dispatch() {
 
     if( clientSockets_.constFind( from ) == clientSockets_.constEnd() ) {
         QStringList initText = text.split( "/", QString::SkipEmptyParts );
-        for( const auto s : initText ) {
-            cerr << s.toStdString() << endl;
-        }
         if( initText.size() != 2 ) {
             reject( from, "Invalid initialization data." );
             return;
