@@ -21,7 +21,7 @@
 using namespace std;
 
 
-static const QString version = "1.1";
+static const QString version = "1.2";
 
 
 /*!
@@ -188,12 +188,10 @@ void ChatWidget::connectToServer() {
     inputField_->setEnabled( true );
     inputField_->setFocus();
 
-    // send version to server
-    socket_->write( version.toLocal8Bit() );
-    socket_->flush();
-
+    // send version and nick to server
     prevNick_ = nick();
-    socket_->write( nick().toLocal8Bit() );
+    QString initText = "/" + version + "/" + prevNick_;
+    socket_->write( initText.toLocal8Bit() );
     socket_->flush();
 }
 

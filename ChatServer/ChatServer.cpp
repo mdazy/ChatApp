@@ -10,7 +10,7 @@
 using namespace std;
 
 
-static const QString version = "1.1";
+static const QString version = "1.2";
 
 
 /*!
@@ -91,25 +91,27 @@ void ChatServer::dispatch() {
     auto from = static_cast<QTcpSocket*>( sender() );
     QString text = QString::fromLocal8Bit( from->readAll() );
 
-    cerr << "received from " << from << ": " << text.toStdString() << endl;
+    cerr << "Received " << text.toStdString() << " from " << from << endl;
 
     if( clientSockets_.constFind( from ) == clientSockets_.constEnd() ) {
-        // connection initialization
-        if( text != version ) {
-            from->write( QString( "Please upgrade your client to the latest version." ).toLocal8Bit() );
-            from->flush();
-            from->disconnect();
-            from->close();
-        } else {
-            clientSockets_.insert( from, QString() );
+        QStringList initText = text.split( "/", QString::SkipEmptyParts );
+        for( const auto s : initText ) {
+            cerr << s.toStdString() << endl;
         }
+        if( initText.size() != 2 ) {
+            reject( from, "Invalid initialization data." );
+            return;
+        } else if( initText[ 0 ] != version ) {
+            reject( from, "Your client is for an obsolete version, upgrade it." );
+        } else {
+            cerr << "New connection of " << initText[ 1 ].toStdString() << " from " << from << endl;
+            clientSockets_.insert( from, initText[ 1 ] );
+            sendToClients( "/<b><font color=\"#442222\">" + initText[ 1 ] + " connected.</font></b>", from );
+        }
+        return;
     }
-    if( clientSockets_[ from ].isEmpty() ) {
-        // first message: store nick and send connection notification
-        cerr << "nick for new connection" << endl;
-        clientSockets_[ from ] = text;
-        text = "/<b><font color=\"#442222\">" + text + " connected.</font></b>";
-    } else if( !text.startsWith( clientSockets_[ from ] + ": " ) ) {
+
+    if( !text.startsWith( clientSockets_[ from ] + ": " ) ) {
         // new nick, update and notify
         cerr << "new nick for existing connection" << endl;
         QString oldNick = clientSockets_[ from ];
@@ -120,6 +122,17 @@ void ChatServer::dispatch() {
     }
 
     sendToClients( text, from );
+}
+
+
+/*!
+ * Rejects a client connection.
+ */
+void ChatServer::reject( QTcpSocket* client, const QString& reason ) const {
+    client->write( reason.toLocal8Bit() );
+    client->flush();
+    client->disconnect();
+    client->close();
 }
 
 

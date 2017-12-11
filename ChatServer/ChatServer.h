@@ -16,6 +16,7 @@ public slots:
 
 protected:
     void sendToClients( const QString& msg, const QTcpSocket* from = Q_NULLPTR ) const;
+    void reject( QTcpSocket* client, const QString& reason ) const;
 
 protected:
     QMap<QTcpSocket*, QString> clientSockets_;
