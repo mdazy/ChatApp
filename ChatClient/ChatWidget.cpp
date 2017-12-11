@@ -191,6 +191,7 @@ void ChatWidget::connectToServer() {
     // send version and nick to server
     prevNick_ = nick();
     QString initText = "/" + version + "/" + prevNick_;
+    settings_->setValue( "nickName", prevNick_ );
     socket_->write( initText.toLocal8Bit() );
     socket_->flush();
 }
