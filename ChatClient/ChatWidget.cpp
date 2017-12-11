@@ -15,6 +15,9 @@
 #include <QtNetwork/QTcpSocket>
 
 
+static const QString version = "1.1";
+
+
 /*!
  * Sets up the UI and a non connected socket.
  */
@@ -50,6 +53,7 @@ ChatWidget::ChatWidget( QWidget* parent ) :
     textView_->setObjectName( "text view" );
     textView_->setReadOnly( true );
     textView_->setFocusPolicy( Qt::NoFocus );
+    textView_->setAcceptRichText( false );
     l->addWidget( textView_ );
 
     // input field
@@ -78,6 +82,10 @@ void ChatWidget::sendText() {
     auto text = inputField_->text();
     inputField_->clear();
     if( text.isEmpty() ) {
+        return;
+    }
+    if( text.startsWith( "/" ) ) {
+        log( "/<b>Unknown command: " + text + ".</b>" );
         return;
     }
 
@@ -124,7 +132,13 @@ QString ChatWidget::nick() const {
  * Logs the given text in the text view, prepending the current time.
  */
 void ChatWidget::log( const QString& text ) const {
-    textView_->append( QTime::currentTime().toString( Qt::DefaultLocaleShortDate ) + " - " + text );
+    QString time = QTime::currentTime().toString( Qt::DefaultLocaleShortDate ) + " - ";
+    if( text.startsWith( "/" ) ) {
+        textView_->append( time + text.right( text.length() - 1 ) );
+    } else {
+        textView_->append( "" );
+        textView_->insertPlainText( time + text );
+    }
 }
 
 
@@ -147,13 +161,18 @@ void ChatWidget::tryConnectToServer() {
  */
 void ChatWidget::connectToServer() {
     connected_ = true;
-    textView_->append( "*** Connected to " + socket_->peerAddress().toString() + ":" + QString::number( socket_->peerPort() ) + " ***" );
+    log( "/<b><font color=green>*** Connected to " + socket_->peerAddress().toString() + ":" + QString::number( socket_->peerPort() ) + " ***</b></font>" );
     connectButton_->setText( "Connected" );
     inputField_->setEnabled( true );
     inputField_->setFocus();
 
+    // send version to server
+    socket_->write( version.toLocal8Bit() );
+    socket_->flush();
+
     prevNick_ = nick();
     socket_->write( nick().toLocal8Bit() );
+    socket_->flush();
 }
 
 
@@ -165,6 +184,6 @@ void ChatWidget::disconnectFromServer() {
     serverName_->setEnabled( true );
     connectButton_->setText( "Connect" );
     connectButton_->setEnabled( true );
-    textView_->append( "*** Disconnected from " + socket_->peerAddress().toString() + ":" + QString::number( socket_->peerPort() ) + " ***" );
+    log( "/<b><font color=red>*** Disconnected from " + socket_->peerAddress().toString() + ":" + QString::number( socket_->peerPort() ) + " ***</font></b>" );
     inputField_->setDisabled( true );
 }

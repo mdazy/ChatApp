@@ -10,6 +10,9 @@
 using namespace std;
 
 
+static const QString version = "1.1";
+
+
 /*!
  * Convenience for displaying a socket address in standard streams.
  */
@@ -55,7 +58,6 @@ void ChatServer::inspectConnection() {
         cerr << "new connection from " << socket << endl;
         connect( socket, SIGNAL( readyRead() ), this, SLOT( dispatch() ) );
         connect( socket, SIGNAL( disconnected() ), this, SLOT( disconnectClient() ) );
-        clientSockets_.insert( socket, QString() );
     }
 }
 
@@ -91,17 +93,28 @@ void ChatServer::dispatch() {
 
     cerr << "received from " << from << ": " << text.toStdString() << endl;
 
+    if( clientSockets_.constFind( from ) == clientSockets_.constEnd() ) {
+        // connection initialization
+        if( text != version ) {
+            from->write( QString( "Please upgrade your client to the latest version." ).toLocal8Bit() );
+            from->flush();
+            from->disconnect();
+            from->close();
+        } else {
+            clientSockets_.insert( from, QString() );
+        }
+    }
     if( clientSockets_[ from ].isEmpty() ) {
         // first message: store nick and send connection notification
         cerr << "nick for new connection" << endl;
         clientSockets_[ from ] = text;
-        text += " connected.";
+        text = "/<b><font color=\"#442222\">" + text + " connected.</font></b>";
     } else if( !text.startsWith( clientSockets_[ from ] + ": " ) ) {
         // new nick, update and notify
         cerr << "new nick for existing connection" << endl;
         QString oldNick = clientSockets_[ from ];
         clientSockets_[ from ] = text;
-        text = oldNick + " has changed his nick to " + text + ".";
+        text = "/<b><font color=\"#442222\">" + oldNick + " has changed his nick to " + text + ".</font></b>";
     } else {
         // regular text
     }
@@ -115,6 +128,6 @@ void ChatServer::dispatch() {
  */
 void ChatServer::disconnectClient() {
     auto from = static_cast<QTcpSocket*>( sender() );
-    sendToClients( clientSockets_[ from ] + " disconnected.", from );
+    sendToClients( "/<b><font color=\"#442222\">" + clientSockets_[ from ] + " disconnected.</font></b>", from );
     clientSockets_.remove( from );
 }
