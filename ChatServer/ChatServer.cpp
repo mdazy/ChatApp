@@ -88,15 +88,21 @@ void ChatServer::dispatch() {
     auto from = static_cast<QTcpSocket*>( sender() );
     QString text = QString::fromLocal8Bit( from->readAll() );
 
+    cerr << "received from " << from << ": " << text.toStdString() << endl;
+
     if( clientSockets_[ from ].isEmpty() ) {
         // first message: store nick and send connection notification
+        cerr << "nick for new connection" << endl;
         clientSockets_[ from ] = text;
         text += " connected.";
     } else if( !text.startsWith( clientSockets_[ from ] + ": " ) ) {
         // new nick, update and notify
+        cerr << "new nick for existing connection" << endl;
         QString oldNick = clientSockets_[ from ];
         clientSockets_[ from ] = text;
         text = oldNick + " has changed his nick to " + text + ".";
+    } else {
+        // regular text
     }
 
     sendToClients( text, from );
