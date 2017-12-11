@@ -86,6 +86,7 @@ void ChatWidget::sendText() {
     if( nick() != prevNick_ ) {
         prevNick_ = nick();
         socket_->write( prevNick_.toLocal8Bit() );
+        socket_->flush();
     }
 
     text = prevNick_ + ": " + text;
