@@ -15,5 +15,8 @@ public slots:
     void disconnectClient();
 
 protected:
-    QList<QTcpSocket*> clientSockets_;
+    void sendToClients( const QString& msg, const QTcpSocket* from = Q_NULLPTR ) const;
+
+protected:
+    QMap<QTcpSocket*, QString> clientSockets_;
 };

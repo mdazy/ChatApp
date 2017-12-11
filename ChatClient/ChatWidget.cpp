@@ -1,6 +1,7 @@
 #include "ChatWidget.h"
 
 #include <QtCore/QProcessEnvironment>
+#include <QtCore/QTime>
 
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QLabel>
@@ -13,6 +14,10 @@
 #include <QtNetwork/QHostInfo>
 #include <QtNetwork/QTcpSocket>
 
+
+/*!
+ * Sets up the UI and a non connected socket.
+ */
 ChatWidget::ChatWidget( QWidget* parent ) :
     QWidget( parent ),
     connected_( false )
@@ -63,36 +68,68 @@ ChatWidget::ChatWidget( QWidget* parent ) :
 }
 
 
+/*!
+ * Sends input text.
+ * 
+ * Sends the input text if it's not empty, prepending the nick name, then clears the
+ * input field.
+ */
 void ChatWidget::sendText() {
     auto text = inputField_->text();
+    inputField_->clear();
     if( text.isEmpty() ) {
         return;
     }
-    textView_->append( text );
 
-    QString nick = nickName_->text();
-    if( nick.isEmpty() ) {
-        nick = QProcessEnvironment::systemEnvironment().value( "USERNAME" );
+    log( text );
+
+    if( nick() != prevNick_ ) {
+        prevNick_ = nick();
+        socket_->write( prevNick_.toLocal8Bit() );
     }
-    text = nick + ": " + text;
+
+    text = prevNick_ + ": " + text;
     if( connected_ ) {
-        // send to server
         socket_->write( text.toLocal8Bit() );
     }
-
-    inputField_->clear();
 }
 
 
+/*!
+ * Displays text received from the server.
+ */
 void ChatWidget::receiveText() {
     auto text = QString::fromLocal8Bit( socket_->readAll() );
     if( text.isEmpty() ) {
         return;
     }
-    textView_->append( "Received: " + text );
+    log( text );
 }
 
 
+/*!
+ * \return the nickname if it is defined, otherwise returns the OS username.
+ */
+QString ChatWidget::nick() const {
+    QString name = nickName_->text();
+    if( name.isEmpty() ) {
+        name = QProcessEnvironment::systemEnvironment().value( "USERNAME" );
+    }
+    return name;
+}
+
+
+/*!
+ * Logs the given text in the text view, prepending the current time.
+ */
+void ChatWidget::log( const QString& text ) const {
+    textView_->append( QTime::currentTime().toString( Qt::DefaultLocaleShortDate ) + " - " + text );
+}
+
+
+/*!
+ * Attempts to connect to the requested server.
+ */
 void ChatWidget::tryConnectToServer() {
     // disable connect button while trying
     serverName_->setDisabled( true );
@@ -104,15 +141,24 @@ void ChatWidget::tryConnectToServer() {
 }
 
 
+/*!
+ * Update the UI once connected and sends the nickname as first message.
+ */
 void ChatWidget::connectToServer() {
     connected_ = true;
     textView_->append( "*** Connected to " + socket_->peerAddress().toString() + ":" + QString::number( socket_->peerPort() ) + " ***" );
     connectButton_->setText( "Connected" );
     inputField_->setEnabled( true );
     inputField_->setFocus();
+
+    prevNick_ = nick();
+    socket_->write( nick().toLocal8Bit() );
 }
 
 
+/*!
+ * Disconnects and resets the UI.
+ */
 void ChatWidget::disconnectFromServer() {
     connected_ = false;
     serverName_->setEnabled( true );

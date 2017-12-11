@@ -20,6 +20,10 @@ protected slots:
     void disconnectFromServer();
 
 protected:
+    QString nick() const;
+    void log( const QString& text ) const;
+
+protected:
     QLineEdit* serverName_;
     QPushButton* connectButton_;
     QLineEdit* nickName_;
@@ -27,4 +31,5 @@ protected:
     QLineEdit* inputField_;
     QTcpSocket* socket_;
     bool connected_;
+    QString prevNick_;
 };
