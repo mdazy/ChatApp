@@ -69,6 +69,7 @@ void ChatServer::sendToClients( const QString& msg, const QTcpSocket* from ) con
             continue;
         }
         ( *s )->write( msg.toLocal8Bit() );
+        ( *s )->flush();
     }
 }
 
