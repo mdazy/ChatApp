@@ -3,3 +3,4 @@ bin/
 moc/
 **/Makefile
 .qmake.stash
+pouet
